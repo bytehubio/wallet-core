@@ -20,7 +20,7 @@ jobs:
         env:
           TOKEN: ${{ secrets.SYNC_TAGS_TOKEN }}
         run: |
-          git remote add upstream https://github.com/bytehubio/wallet-core.git
+          git remote add upstream https://github.com/trustwallet/wallet-core.git
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/bytehubio/wallet-core.git
           git fetch upstream --prune --tags
           git remote set-head upstream -a
