@@ -1,4 +1,4 @@
-name: Sync upstream
+name: Sync upstream TAGS+BRANCHES
 
 on:
   workflow_dispatch:
