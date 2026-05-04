@@ -20,18 +20,32 @@ jobs:
         env:
           TOKEN: ${{ secrets.SYNC_TAGS_TOKEN }}
         run: |
-          git remote add upstream https://github.com/trustwallet/wallet-core.git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git remote set-url origin https://x-access-token:${TOKEN}@github.com/bytehubio/wallet-core.git
+          git remote add upstream https://github.com/trustwallet/wallet-core.git
+
+          git fetch origin --prune --tags
           git fetch upstream --prune --tags
           git remote set-head upstream -a
 
-      - name: Sync default branch from upstream
+      - name: Rebase fork master onto upstream master
         continue-on-error: true
         run: |
           DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/upstream/HEAD | sed 's#^upstream/##')"
-          git push origin "refs/remotes/upstream/${DEFAULT_BRANCH}:refs/heads/${DEFAULT_BRANCH}"
+
+          git checkout -B "${DEFAULT_BRANCH}" "origin/${DEFAULT_BRANCH}"
+
+          if ! git rebase "upstream/${DEFAULT_BRANCH}"; then
+            git rebase --abort || true
+            echo "::warning::Could not rebase ${DEFAULT_BRANCH} on upstream/${DEFAULT_BRANCH}. Tags sync will still run."
+            exit 0
+          fi
+
+          git push --force-with-lease origin "${DEFAULT_BRANCH}:${DEFAULT_BRANCH}"
 
       - name: Sync tags from upstream
-        if: always()
+        if: ${{ always() }}
         run: |
-          git push origin --tags
+          git push origin 'refs/tags/*:refs/tags/*'
