@@ -1,0 +1,37 @@
+name: Sync upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure remotes
+        env:
+          TOKEN: ${{ secrets.SYNC_TAGS_TOKEN }}
+        run: |
+          git remote add upstream https://github.com/bytehubio/wallet-core.git
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/bytehubio/wallet-core.git
+          git fetch upstream --prune --tags
+          git remote set-head upstream -a
+
+      - name: Sync default branch from upstream
+        continue-on-error: true
+        run: |
+          DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/upstream/HEAD | sed 's#^upstream/##')"
+          git push origin "refs/remotes/upstream/${DEFAULT_BRANCH}:refs/heads/${DEFAULT_BRANCH}"
+
+      - name: Sync tags from upstream
+        if: always()
+        run: |
+          git push origin --tags
